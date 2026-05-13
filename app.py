@@ -45,7 +45,7 @@ st.subheader("Session Depth Analysis")
 # Aggregate in SQL to keep the dataframe small
 query_agg = f"""
     SELECT sessionid, COUNT(*) as spin_count
-    FROM `graduate-capstone.your_dataset.logs_50k`
+    FROM `{table_name}`
     GROUP BY sessionid
     HAVING spin_count > 1
     ORDER BY spin_count DESC
