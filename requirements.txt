@@ -1,0 +1,7 @@
+streamlit
+google-cloud-bigquery
+google-auth
+pandas
+db-dtypes
+seaborn
+matplotlib
