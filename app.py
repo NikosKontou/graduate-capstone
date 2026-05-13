@@ -12,6 +12,7 @@ def get_bq_client():
     return bigquery.Client(credentials=creds, project=creds.project_id)
 
 client = get_bq_client()
+table_name = 'graduate-capstone.igaming_test.second_50k_p1'
 
 st.title("🎰 Player Engagement Demo")
 
@@ -25,7 +26,7 @@ st.subheader("Bet vs. Win Correlation")
 
 query = f"""
     SELECT betbaseamount, wonbaseamount, game_provider_id
-    FROM `graduate-capstone.your_dataset.logs_50k`
+    FROM `{table_name}`
     WHERE betbaseamount >= {min_bet}
     AND game_provider_id IN UNNEST({provider})
     LIMIT 1000
