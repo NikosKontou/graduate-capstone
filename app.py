@@ -1,98 +1,56 @@
 import streamlit as st
-import seaborn as sns
-import matplotlib.pyplot as plt
-from google.cloud import bigquery
-from google.oauth2 import service_account
-
-@st.cache_resource
-def get_bq_client():
-    info = st.secrets["gcp_service_account"]
-    creds = service_account.Credentials.from_service_account_info(info)
-    return bigquery.Client(credentials=creds, project=creds.project_id)
-
-client = get_bq_client()
-table_name = 'graduate-capstone.igaming_test.50k'
+import database
+import queries
+import charts
 
 st.title("🎰 Player Engagement Demo")
-st.warning("⚠️ Warning: The results displayed below are based on a limited 50k row test table.")
 
+# --- Environment Toggle ---
+env = st.sidebar.radio("🌍 Environment Source", ["Local DuckDB", "BigQuery"])
+
+if env == "Local DuckDB":
+    db_path = '/Top/ACG/Year_2/trimester 3/capstone/data/full_merged_sorted_data.parquet'
+    table_name = 'local_logs'
+    client = database.get_local_connection(db_path)
+    st.sidebar.success("🟢 Running locally via DuckDB")
+else:
+    table_name = 'graduate-capstone.your_dataset.full_player_logs_sorted'
+    client = database.get_bq_connection()
+    st.sidebar.info("☁️ Running via Google BigQuery")
+
+st.sidebar.divider()
+
+# --- Filters ---
 st.sidebar.header("Filters")
 min_bet = st.sidebar.slider("Minimum Bet Amount", 0.0, 5.0, 0.0)
-provider = st.sidebar.multiselect("Game Provider ID", options=[2, 5, 10], default=[2])
+providers = st.sidebar.multiselect("Game Provider ID", options=[2, 5, 10], default=[2])
+game_ids_input = st.sidebar.text_input("Game IDs (comma-separated, optional)", "")
 
-# --- Questions 1, 2 & 3: High-Level Session Metrics ---
-st.subheader("Global Session Averages")
+try:
+    game_ids = [int(x.strip()) for x in game_ids_input.split(',')] if game_ids_input.strip() else []
+except ValueError:
+    st.sidebar.error("Please enter valid numeric Game IDs.")
+    st.stop()
 
-# Calculate all averages natively in BigQuery
-kpi_query = f"""
-    WITH session_data AS (
-        SELECT 
-            sessionid,
-            COUNT(*) as spins,
-            TIMESTAMP_DIFF(MAX(endtime), MIN(starttime), SECOND) as session_dur_sec
-        FROM `{table_name}`
-        GROUP BY sessionid
-    )
-    SELECT 
-        (SELECT AVG(TIMESTAMP_DIFF(endtime, starttime, SECOND)) FROM `{table_name}`) as avg_round_sec,
-        AVG(spins) as avg_spins,
-        AVG(session_dur_sec) as avg_session_sec
-    FROM session_data
-"""
-df_kpi = client.query(kpi_query).to_dataframe()
+if not providers:
+    st.warning("Select at least one provider.")
+    st.stop()
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Avg Round Duration", f"{df_kpi['avg_round_sec'][0]:.2f} sec")
-col2.metric("Avg Spins / Session", f"{df_kpi['avg_spins'][0]:.1f}")
-col3.metric("Avg Session Duration", f"{df_kpi['avg_session_sec'][0]:.1f} sec")
+# --- Data Execution ---
+# We pass the selected 'env' variable down to the queries
+target_env = "BigQuery" if env == "BigQuery" else "Local"
+
+df_kpi = queries.get_kpi_metrics(client, table_name, min_bet, providers, game_ids, target_env)
+
+c1, c2, c3 = st.columns(3)
+c1.metric("Avg Round Duration", f"{df_kpi['avg_round'][0]:.2f}s")
+c2.metric("Avg Spins", f"{df_kpi['avg_spins'][0]:.1f}")
+c3.metric("Avg Session", f"{df_kpi['avg_session'][0]:.1f}s")
 
 st.divider()
 
-# --- Question 4: Stake Variation by Game ---
-st.subheader("Stake Variation (Up/Down) by Game")
+df_scatter = queries.get_scatter_data(client, table_name, min_bet, providers, game_ids, target_env)
+fig_scatter = charts.plot_bet_vs_win(df_scatter)
 
-# Identifies sessions where the max bet differs from the min bet
-stake_query = f"""
-    WITH stake_changes AS (
-        SELECT 
-            account,
-            game_provider_id,
-            IF(MAX(betbaseamount) > MIN(betbaseamount), 1, 0) as changed_stake
-        FROM `{table_name}`
-        GROUP BY sessionid, account, game_provider_id
-    )
-    SELECT 
-        game_provider_id,
-        SUM(changed_stake) as players_varying_stake,
-        COUNT(DISTINCT account) as total_players,
-        (SUM(changed_stake) / COUNT(DISTINCT account)) * 100 as pct_varying
-    FROM stake_changes
-    GROUP BY game_provider_id
-    ORDER BY pct_varying DESC
-"""
-df_stake = client.query(stake_query).to_dataframe()
-
-fig_stake, ax_stake = plt.subplots(figsize=(10, 4))
-sns.barplot(data=df_stake, x="game_provider_id", y="pct_varying", palette="magma", ax=ax_stake)
-ax_stake.set_ylabel("% of Players Changing Stake")
-ax_stake.set_xlabel("Game Provider ID")
-sns.despine()
-st.pyplot(fig_stake)
-
-st.divider()
-
-# --- Original Charts ---
 st.subheader("Bet vs. Win Correlation")
-query = f"""
-    SELECT betbaseamount, wonbaseamount, game_provider_id
-    FROM `{table_name}`
-    WHERE betbaseamount >= {min_bet}
-    AND game_provider_id IN UNNEST({provider})
-    LIMIT 1000
-"""
-df = client.query(query).to_dataframe()
-
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.scatterplot(data=df, x="betbaseamount", y="wonbaseamount", hue="game_provider_id", ax=ax)
-sns.despine()
-st.pyplot(fig)
+st.pyplot(fig_scatter)
