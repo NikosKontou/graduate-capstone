@@ -12,7 +12,7 @@ def get_bq_client():
     return bigquery.Client(credentials=creds, project=creds.project_id)
 
 client = get_bq_client()
-table_name = 'graduate-capstone.igaming_test.second_50k_p1'
+table_name = 'graduate-capstone.igaming_test.50k'
 
 st.title("🎰 Player Engagement Demo")
 
