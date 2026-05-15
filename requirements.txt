@@ -5,3 +5,4 @@ pandas
 db-dtypes
 seaborn
 matplotlib
+duckdb
