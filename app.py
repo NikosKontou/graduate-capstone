@@ -14,7 +14,7 @@ if env == "Local DuckDB":
     client = database.get_local_connection(db_path)
     st.sidebar.success("🟢 Running locally via DuckDB")
 else:
-    table_name = 'graduate-capstone.your_dataset.full_player_logs_sorted'
+    table_name = 'graduate-capstone.igaming_test.50k'
     client = database.get_bq_connection()
     st.sidebar.info("☁️ Running via Google BigQuery")
 
