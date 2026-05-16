@@ -53,4 +53,19 @@ df_scatter = queries.get_scatter_data(client, table_name, min_bet, providers, ga
 fig_scatter = charts.plot_bet_vs_win(df_scatter)
 
 st.subheader("Bet vs. Win Correlation")
+st.caption("⚠️ Displaying a sample of 1,000 rows for performance.")
 st.pyplot(fig_scatter)
+
+# Fetch the data (Now passing min_bet, providers, and game_ids)
+df_variance = queries.get_overall_stake_variance(client, table_name, min_bet, providers, game_ids, target_env)
+
+# Extract the numbers from the dataframe
+total_players = df_variance['total_players'][0]
+varying_players = df_variance['varying_players'][0]
+pct_varying = df_variance['pct_varying'][0]
+
+# Display in the UI
+st.subheader("Global Stake Behavior")
+c1, c2 = st.columns(2)
+c1.metric("Total Unique Players", f"{total_players:,}")
+c2.metric("Players Changing Stake", f"{varying_players:,}", f"{pct_varying:.1f}%")
