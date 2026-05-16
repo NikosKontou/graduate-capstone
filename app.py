@@ -98,18 +98,12 @@ providers = st.sidebar.multiselect(
     default=[2],
 )
 
-game_ids_input = st.sidebar.text_input("Game IDs (comma-separated, optional)", "")
-
-try:
-    game_ids = (
-        [int(x.strip()) for x in game_ids_input.split(",")]
-        if game_ids_input.strip()
-        else []
-    )
-except ValueError:
-    st.sidebar.error("Please enter valid numeric Game IDs.")
-    st.stop()
-
+# New Game ID Multiselect
+game_ids = st.sidebar.multiselect(
+    "Game IDs (optional)",
+    options=list(range(1, 12)), # Generates integers 1 through 11
+    default=[]
+)
 if not providers:
     st.warning("⚠️ Select at least one Game Provider in the sidebar.")
     st.stop()
