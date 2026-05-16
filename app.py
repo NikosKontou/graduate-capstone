@@ -92,10 +92,11 @@ st.sidebar.header("🔎 Filters")
 
 min_bet = st.sidebar.slider("Minimum Bet Amount", 0.0, 5.0, 0.0, step=0.05)
 
+provider_ids = [1, 2, 3, 4, 5]
 providers = st.sidebar.multiselect(
     "Game Provider ID",
-    options=[2, 5, 10],
-    default=[2],
+    options=provider_ids,
+    default=provider_ids,
 )
 
 # New Game ID Multiselect
