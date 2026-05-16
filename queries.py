@@ -108,16 +108,14 @@ def get_kpi_metrics(client, tables, filters, env):
 # ── Q4 — Stake variance ───────────────────────────────────────────────────────
 
 def get_stake_variance_overall(client, tables, filters, env):
-    """
-    One-row DataFrame:
-      total_sessions, sessions_with_stake_change,
-      count_stake_up_events, count_stake_down_events, pct_sessions_changed
-    """
     as_ = _ref(tables, "agg_sessions", env)
-    w   = _where_sessions(filters)
+    w = _where_sessions(filters)
+
+    # Update this variable
+    ftype = "FLOAT64" if env == "BigQuery" else "DOUBLE"
     pct = _safe_div(
         "SUM(CASE WHEN had_stake_change THEN 1 ELSE 0 END)",
-        "CAST(COUNT(*) AS FLOAT)",
+        f"CAST(COUNT(*) AS {ftype})",
         env,
     )
 
@@ -134,16 +132,14 @@ def get_stake_variance_overall(client, tables, filters, env):
 
 
 def get_stake_variance_by_game(client, tables, filters, env):
-    """
-    One row per game_id:
-      game_id, total_sessions, sessions_with_stake_change,
-      count_stake_up_events, count_stake_down_events, pct_sessions_changed
-    """
     as_ = _ref(tables, "agg_sessions", env)
-    w   = _where_sessions(filters)
+    w = _where_sessions(filters)
+
+    # Update this variable
+    ftype = "FLOAT64" if env == "BigQuery" else "DOUBLE"
     pct = _safe_div(
         "SUM(CASE WHEN had_stake_change THEN 1 ELSE 0 END)",
-        "CAST(COUNT(*) AS FLOAT)",
+        f"CAST(COUNT(*) AS {ftype})",
         env,
     )
 
@@ -161,18 +157,14 @@ def get_stake_variance_by_game(client, tables, filters, env):
     """
     return run_query(client, query, env)
 
-
 # ── Q5 — RTP bucket distribution ──────────────────────────────────────────────
-
 def get_rtp_buckets(client, tables, filters, env):
-    """
-    One row per rtp_bucket.
-    Re-aggregates from agg_rounds so provider + min_bet filters apply.
-    Columns: rtp_bucket, round_count, pct_of_all_rounds
-    """
-    ar    = _ref(tables, "agg_rounds", env)
-    w     = _where_rounds(filters)
-    total = _safe_div("COUNT(*)", "CAST(SUM(COUNT(*)) OVER () AS FLOAT)", env)
+    ar = _ref(tables, "agg_rounds", env)
+    w = _where_rounds(filters)
+
+    # Update this variable
+    ftype = "FLOAT64" if env == "BigQuery" else "DOUBLE"
+    total = _safe_div("COUNT(*)", f"CAST(SUM(COUNT(*)) OVER () AS {ftype})", env)
 
     query = f"""
         SELECT
@@ -185,20 +177,15 @@ def get_rtp_buckets(client, tables, filters, env):
     """
     return run_query(client, query, env)
 
-
 # ── Q6 — Spin transitions ──────────────────────────────────────────────────────
-
 def get_spin_transitions(client, tables, filters, env):
-    """
-    One row per (prev_rtp_bucket, bet_change_direction).
-    First spin of each session is excluded (prev_rtp_bucket IS NULL).
-    Columns: prev_rtp_bucket, bet_change_direction, transition_count, pct
-    """
-    ar    = _ref(tables, "agg_rounds", env)
-    w     = _where_rounds(filters)
-    # Safe to append — _where_rounds always returns "WHERE ..."
+    ar = _ref(tables, "agg_rounds", env)
+    w = _where_rounds(filters)
     w_ext = w + " AND prev_rtp_bucket IS NOT NULL AND bet_change_direction IS NOT NULL"
-    total = _safe_div("COUNT(*)", "CAST(SUM(COUNT(*)) OVER () AS FLOAT)", env)
+
+    # Update this variable
+    ftype = "FLOAT64" if env == "BigQuery" else "DOUBLE"
+    total = _safe_div("COUNT(*)", f"CAST(SUM(COUNT(*)) OVER () AS {ftype})", env)
 
     query = f"""
         SELECT
