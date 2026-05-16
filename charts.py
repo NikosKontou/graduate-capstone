@@ -306,3 +306,27 @@ def plot_post_win_continuation(df: pd.DataFrame):
     sns.despine(ax=ax)
     fig.tight_layout()
     return fig
+
+
+# ── Q9  —  Hesitation Distribution ────────────────────────────────────────────
+
+def plot_hesitation_distribution(df: pd.DataFrame):
+    """Line plot showing the distribution of seconds-per-spin."""
+    fig, ax = _fig(11, 5)
+
+    if not df.empty:
+        ax.plot(df["hesitation_sec"], df["session_count"], marker="o", color="#9B59B6", linewidth=2)
+        ax.fill_between(df["hesitation_sec"], df["session_count"], color="#9B59B6", alpha=0.2)
+
+    ax.set_title("Session Hesitation (Seconds per Spin)", fontsize=14, fontweight="bold")
+    ax.set_xlabel("Average Time Between Spins (Seconds)")
+    ax.set_ylabel("Number of Sessions")
+    # ax.set_xlim(0, max(10, df["hesitation_sec"].max() if not df.empty else 60))
+    ax.set_xlim(0, 30)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+
+    sns.despine(ax=ax)
+    fig.tight_layout()
+    return fig
+
+

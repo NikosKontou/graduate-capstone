@@ -137,6 +137,7 @@ def fetch_all(_client, _tables, min_bet: float, providers_tuple: tuple,
         "transitions":   queries.get_spin_transitions(_client, _tables, filters, env),
         "scatter":       queries.get_win_vs_session_length(_client, _tables, filters, env),
         "post_win":      queries.get_post_win_continuation(_client, _tables, filters, env),
+        "hesitation": queries.get_hesitation_distribution(_client, _tables, filters, env)
     }
 
 with st.spinner("Fetching data…"):
@@ -293,6 +294,23 @@ else:
             c for c in charts.SPINS_REMAINING_COLS if c in pw_df.columns
         ]
         st.dataframe(pw_df[display_cols], hide_index=True, use_container_width=True)
+
+# ---------------------------------------------------------------------------
+# Section 7 — Session Hesitation
+# ---------------------------------------------------------------------------
+
+st.header("Session Hesitation", divider="gray")
+st.caption(
+    "Distribution of the average time taken between spins (Session Duration ÷ Total Spins). "
+    "Values are rounded to the nearest second and capped at 60s to exclude abandoned sessions."
+)
+
+hes_df = data["hesitation"]
+if hes_df.empty:
+    st.info("No data for selected filters.")
+else:
+    fig_hes = charts.plot_hesitation_distribution(hes_df)
+    st.pyplot(fig_hes)
 
 # ---------------------------------------------------------------------------
 # Footer

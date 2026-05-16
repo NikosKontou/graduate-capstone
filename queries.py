@@ -251,3 +251,33 @@ def get_post_win_continuation(client, tables, filters, env):
         GROUP BY prev_rtp_bucket
     """
     return run_query(client, query, env)
+
+
+# ── Q9 — Hesitation (Seconds per spin) ────────────────────────────────────────
+
+def get_hesitation_distribution(client, tables, filters, env):
+    """
+    Calculates seconds per spin (hesitation) rounded to the nearest second,
+    and counts how many sessions fall into each bucket (capped at 60 seconds).
+    """
+    as_ = _ref(tables, "agg_sessions", env)
+    w = _where_sessions(filters)
+
+    sec_per_spin = _safe_div("session_duration_sec", "total_spins", env)
+
+    query = f"""
+        WITH calc AS (
+            SELECT 
+                ROUND({sec_per_spin}) AS hesitation_sec
+            FROM {as_}
+            {w}
+        )
+        SELECT 
+            hesitation_sec,
+            COUNT(*) as session_count
+        FROM calc
+        WHERE hesitation_sec IS NOT NULL AND hesitation_sec <= 60
+        GROUP BY hesitation_sec
+        ORDER BY hesitation_sec
+    """
+    return run_query(client, query, env)
