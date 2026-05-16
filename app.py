@@ -48,7 +48,8 @@ LOCAL_PATHS = {
 }
 
 # ---- BigQuery table names (dataset.table, no backticks) -------------------
-BQ_DATASET = "graduate-capstone.igaming_test"
+# BQ_DATASET = "graduate-capstone.igaming_test"
+BQ_DATASET = "graduate-capstone.igaming_merged_full"
 BQ_TABLES = {
     "raw":                  f"{BQ_DATASET}.raw_rounds",
     "agg_rounds":           f"{BQ_DATASET}.agg_rounds",
